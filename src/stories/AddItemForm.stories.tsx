@@ -1,21 +1,38 @@
-import TextField from '@mui/material/TextField/TextField';
 import React, {ChangeEvent, KeyboardEvent, useState} from 'react';
+import { ComponentStory, ComponentMeta } from '@storybook/react';
+import {AddItemForm} from "../AddItemForm";
+import {action} from "@storybook/addon-actions";
+import TextField from "@mui/material/TextField/TextField";
 import {IconButton} from "@mui/material";
 import {AddBox} from "@mui/icons-material";
 
+ export default {
+    title: 'TODOLIST/AddItemForm',
+    component: AddItemForm,
+    argTypes: {
+        addItem: {
+            description: 'Button clicked inside form'
+        }
+    },
+} as ComponentMeta<typeof AddItemForm>;
 
-type AddItemFormPropsType = {
-    addItem: (title: string) => void
-}
 
-export const AddItemForm = React.memo( (props: AddItemFormPropsType) => {
+const Template: ComponentStory<typeof AddItemForm> = (args) => <AddItemForm {...args} />;
+
+export const AddItemFormStory = Template.bind({});
+AddItemFormStory.args = {
+    addItem : action('Button clicked inside form')
+
+};
+
+const TemplateWithErrors :ComponentStory<typeof AddItemForm> = (args) => {
 
     let [title, setTitle] = useState("")
-    let [error, setError] = useState<string | null>(null)
+    let [error, setError] = useState<string | null>("Title is required")
 
     const addItem = () => {
         if (title.trim() !== "") {
-            props.addItem(title);
+           args.addItem(title);
             setTitle("");
         } else {
             setError("Title is required");
@@ -48,4 +65,7 @@ export const AddItemForm = React.memo( (props: AddItemFormPropsType) => {
             <AddBox />
         </IconButton>
     </div>
-} );
+};
+
+export const AddItemFormWithErrorStory = TemplateWithErrors.bind({})
+
