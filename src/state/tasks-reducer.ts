@@ -1,7 +1,8 @@
 import { TasksStateType } from '../App';
 import { v1 } from 'uuid';
-import {_SetTodolistType, AddTodolistActionType, RemoveTodolistActionType} from './todolists-reducer';
-import { TaskPriorities, TaskStatuses, TaskType } from '../api/todolists-api'
+import {_SetTodolistType, AddTodolistActionType, RemoveTodolistActionType, setTodolistAC} from './todolists-reducer';
+import {TaskPriorities, TaskStatuses, TaskType, todolistsAPI} from '../api/todolists-api'
+import {Dispatch} from "redux";
 
 export type RemoveTaskActionType = {
     type: 'REMOVE-TASK',
@@ -12,7 +13,7 @@ export type RemoveTaskActionType = {
 export type AddTaskActionType = {
     type: 'ADD-TASK',
     todolistId: string
-    title: string
+    task: TaskType
 }
 
 export type ChangeTaskStatusActionType = {
@@ -35,6 +36,7 @@ type ActionsType = RemoveTaskActionType | AddTaskActionType
     | AddTodolistActionType
     | RemoveTodolistActionType
     |_SetTodolistType
+    | ReturnType<typeof setTasksAC>
 
 const initialState: TasksStateType = {
     /*"todolistId1": [
@@ -58,6 +60,9 @@ const initialState: TasksStateType = {
 
 export const tasksReducer = (state: TasksStateType = initialState, action: ActionsType): TasksStateType => {
     switch (action.type) {
+        case "SET-TASKS":{
+            return {...state, [action.toDoId]: action.tasks}
+        }
         case "SET-TODOS":{
             const copyState = {...state}
             action.todos.forEach((td) => {copyState[td.id] = []})
@@ -71,18 +76,7 @@ export const tasksReducer = (state: TasksStateType = initialState, action: Actio
             return stateCopy;
         }
         case 'ADD-TASK': {
-            const stateCopy = {...state}
-            const newTask: TaskType = {
-                id: v1(),
-                title: action.title,
-                status: TaskStatuses.New,
-                todoListId: action.todolistId, description: '',
-                startDate: '', deadline: '', addedDate: '', order: 0, priority: TaskPriorities.Low
-            }
-            const tasks = stateCopy[action.todolistId];
-            const newTasks = [newTask, ...tasks];
-            stateCopy[action.todolistId] = newTasks;
-            return stateCopy;
+           return {...state, [action.todolistId]: [action.task, ...state[action.todolistId]]}
         }
         case 'CHANGE-TASK-STATUS': {
             let todolistTasks = state[action.todolistId];
@@ -120,13 +114,32 @@ export const tasksReducer = (state: TasksStateType = initialState, action: Actio
 export const removeTaskAC = (taskId: string, todolistId: string): RemoveTaskActionType => {
     return {type: 'REMOVE-TASK', taskId: taskId, todolistId: todolistId}
 }
-export const addTaskAC = (title: string, todolistId: string): AddTaskActionType => {
-    return {type: 'ADD-TASK', title, todolistId}
+export const addTaskAC = (task: TaskType, todolistId: string): AddTaskActionType => {
+    return {type: 'ADD-TASK', task, todolistId}
 }
 export const changeTaskStatusAC = (taskId: string, status: TaskStatuses, todolistId: string): ChangeTaskStatusActionType => {
     return {type: 'CHANGE-TASK-STATUS', status, todolistId, taskId}
 }
 export const changeTaskTitleAC = (taskId: string, title: string, todolistId: string): ChangeTaskTitleActionType => {
     return {type: 'CHANGE-TASK-TITLE', title, todolistId, taskId}
+}
+export const setTasksAC = (tasks: TaskType[],toDoId:string) => ({type: 'SET-TASKS', tasks, toDoId} as const)
+export const getTasksTC = (toDoId:string) =>(dispatch : Dispatch) => {
+    todolistsAPI.getTasks(toDoId)
+        .then((res)=>{
+            dispatch(setTasksAC(res.data.items,toDoId))
+        })
+}
+export const deleteTasksTC = (toDoId:string , taskId:string) =>(dispatch : Dispatch) => {
+    todolistsAPI.deleteTask(toDoId,taskId)
+        .then((res)=>{
+            dispatch(removeTaskAC(taskId,toDoId))
+        })
+}
+export const createTaskTC = (toDoId:string, title: string) =>(dispatch : Dispatch) => {
+    todolistsAPI.createTask(toDoId, title)
+        .then((res)=>{
+            dispatch(addTaskAC(res.data.data.item, toDoId))
+        })
 }
 
